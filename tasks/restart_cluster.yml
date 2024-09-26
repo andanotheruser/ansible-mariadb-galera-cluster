@@ -1,0 +1,5 @@
+---
+
+- name: Restart Cluster
+  ansible.builtin.include_tasks: "restart_cluster_tasks.yml"
+  loop: "{{ ansible_play_hosts }}"

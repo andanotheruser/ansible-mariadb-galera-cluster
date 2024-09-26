@@ -4,3 +4,6 @@
   ansible.builtin.systemd:
     daemon_reload: true
   become: true
+
+- name: "restart cluster"
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/restart_cluster.yml"

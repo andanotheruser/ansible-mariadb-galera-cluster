@@ -41,6 +41,7 @@ mariadb_mysql_settings:
   datadir: "/var/lib/mysql"
   #Default is 16M
   key_buffer_size: "{{ (ansible_memtotal_mb | int * mariadb_mysql_mem_multiplier) | round | int }}M"
+  log_error: /var/log/mysql/error.log
   max_allowed_packet: "16M"
   max_binlog_size: "100M"
   query_cache_limit: "1M"
@@ -124,9 +125,9 @@ galera_cluster_nodes_group: "galera-cluster-nodes"
 
 # https://mariadb.com/kb/en/mariadb/wsrep_provider_options/
 galera_extra_wsrep_provider_options: {}
-  # evs.auto_evict: 1
-  # evs.delayed_margin: 'PT5S'
-  # evs.delayed_keep_period: 'PT45S'
+# evs.auto_evict: 1
+# evs.delayed_margin: 'PT5S'
+# evs.delayed_keep_period: 'PT45S'
 
 # Define which network segment this node is in.
 # value is an integer from 0 to 255
@@ -205,7 +206,7 @@ mariadb_innodb_buffer_pool_size: "auto"
 
 # What percentage of system memory to use for InnoDB row cache
 # 0.5 means 50%
-mariadb_innodb_mem_multiplier: 0.5
+mariadb_innodb_mem_multiplier: !!float "0.5"
 
 # Calculate the amount of memory based on the above percentage, in bytes
 # mariadb_innodb_buffer_pool_size: >-
@@ -322,3 +323,6 @@ galera_enable_cacti_monitoring: false
 # Define the cacti user info for cacti db monitoring - If used. May remove later.
 cacti_db_password: "cactiuser"
 cacti_db_user: "cactiuser"
+
+# Whether to output user data when managing users.
+galera_users_no_log: false

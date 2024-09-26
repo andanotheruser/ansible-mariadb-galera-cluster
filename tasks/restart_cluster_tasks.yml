@@ -1,0 +1,109 @@
+---
+
+- name: Query wsrep_local_state
+  community.mysql.mysql_query:
+    query: SHOW status LIKE 'wsrep_local_state';
+    login_unix_socket: "{{ mariadb_login_unix_socket }}"
+    login_user: root
+    login_password: "{{ mariadb_mysql_root_password }}"
+    login_host: ''
+  changed_when: false
+  delay: 2
+  delegate_to: "{{ item }}"
+  register: "wsrep_local_state"
+  retries: 50
+  run_once: true
+
+- name: Query wsrep_on
+  community.mysql.mysql_variables:
+    variable: wsrep_on
+    login_unix_socket: "{{ mariadb_login_unix_socket }}"
+    login_user: root
+    login_password: "{{ mariadb_mysql_root_password }}"
+    login_host: ''
+  changed_when: false
+  delay: 2
+  delegate_to: "{{ item }}"
+  register: "wsrep_on"
+  retries: 50
+  run_once: true
+
+- name: Query wsrep_desync
+  community.mysql.mysql_variables:
+    variable: wsrep_desync
+    login_unix_socket: "{{ mariadb_login_unix_socket }}"
+    login_user: root
+    login_password: "{{ mariadb_mysql_root_password }}"
+    login_host: ''
+  changed_when: false
+  delay: 2
+  delegate_to: "{{ item }}"
+  register: "wsrep_desync"
+  retries: 50
+  run_once: true
+
+- name: Query wsrep_ready
+  community.mysql.mysql_query:
+    query: SHOW status LIKE 'wsrep_ready';
+    login_unix_socket: "{{ mariadb_login_unix_socket }}"
+    login_user: root
+    login_password: "{{ mariadb_mysql_root_password }}"
+    login_host: ''
+  changed_when: false
+  delay: 2
+  delegate_to: "{{ item }}"
+  register: "wsrep_ready"
+  retries: 50
+  run_once: true
+
+- name: Query wsrep_connected
+  community.mysql.mysql_query:
+    query: SHOW status LIKE 'wsrep_connected';
+    login_unix_socket: "{{ mariadb_login_unix_socket }}"
+    login_user: root
+    login_password: "{{ mariadb_mysql_root_password }}"
+    login_host: ''
+  changed_when: false
+  delay: 2
+  delegate_to: "{{ item }}"
+  register: "wsrep_connected"
+  retries: 50
+  run_once: true
+
+- name: "Fail and end play if cluster is unhealthy"
+  block:
+    - name: "Fail if cluster is unhealthy"
+      ansible.builtin.fail:
+      delegate_to: "{{ item }}"
+      run_once: true
+      when: ((wsrep_local_state.query_result[0][0].Value != "4") and (wsrep_desync.msg == "OFF") and (wsrep_on.msg == "ON")) or
+            ((wsrep_ready.query_result[0][0].Value != "ON") and (wsrep_on.msg == "ON")) or
+            ((wsrep_connected.query_result[0][0].Value != "ON") and (wsrep_on.msg == "ON"))
+  rescue:
+    - name: "Inform about the unhealthy cluster state"
+      ansible.builtin.debug:
+        msg: "The cluster is unhealthy. It will not be restarted and the play ends now."
+    - name: "Ending the play now."
+      ansible.builtin.meta: end_play
+
+- name: Restart | Restart MySQL Service
+  ansible.builtin.systemd:
+    name: "{{ mariadb_systemd_service_name }}"
+    state: restarted
+  become: true
+  delegate_to: "{{ item }}"
+  run_once: true
+
+- name: Restart | Query Database
+  community.mysql.mysql_query:
+    query: SHOW DATABASES;
+    login_unix_socket: "{{ mariadb_login_unix_socket }}"
+    login_user: root
+    login_password: "{{ mariadb_mysql_root_password }}"
+    login_host: ''
+  delegate_to: "{{ item }}"
+  delay: 2
+  failed_when: query.query_result[0] | length < 4
+  register: query
+  retries: 50
+  run_once: true

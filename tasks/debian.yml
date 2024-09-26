@@ -13,17 +13,16 @@
   loop:
 
 - name: debian | adding MariaDB Repo Keys
-  apt_key:
-    keyserver: "{{ mariadb_debian_repo_keyserver }}"
-    id: "{{ mariadb_debian_repo_key }}"
-    state: "present"
-  become: true
-  when: galera_enable_mariadb_repo|bool and not mariadb_debian_repo_key_url is defined
+  ansible.builtin.get_url:
+    url: "{{ mariadb_debian_repo_key_url }}"
+    dest: /tmp/mariadb.key
+    mode: "0644"
+  when: galera_enable_mariadb_repo|bool and mariadb_debian_repo_key_url is defined
 
 - name: debian | adding MariaDB Repo Keys
-  apt_key:
-    url: "{{ mariadb_debian_repo_key_url }}"
-    state: "present"
+  ansible.builtin.apt_key:
+    file: /tmp/mariadb.key
+    state: present
   become: true
   when: galera_enable_mariadb_repo|bool and mariadb_debian_repo_key_url is defined
 
@@ -46,7 +45,7 @@
   ansible.builtin.file:
     path: "/etc/mysql/conf.d"
     state: "directory"
-    mode: 0755
+    mode: "0755"
   become: true
   when: mariadb_config_overrides is defined
 

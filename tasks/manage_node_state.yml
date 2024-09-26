@@ -6,14 +6,19 @@
   become: true
   when: inventory_hostname == item
 
+- name: manage_node_state | Populate service facts
+  service_facts:
+
 - name: manage_node_state | reset failed status (otherwise service can't be stopped)
   command: "systemctl reset-failed {{ mariadb_systemd_service_name }}" # noqa command-instead-of-module
   become: true
   check_mode: false
   changed_when: false
+  ignore_errors: true
   when:
     - '"stopped" in mariadb_systemd_service_state'
     - inventory_hostname == item
+    - '"inactive" not in ansible_facts.services[mariadb_systemd_service_name].state'
 
 - name: manage_node_state | ensure node is fully stopped before continuing
   ansible.builtin.service:
