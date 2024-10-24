@@ -1,0 +1,12 @@
+---
+plugin: openstack.cloud.openstack
+expand_hostvars: true
+private: true
+legacy_groups: false
+keyed_groups:
+  - key: openstack.metadata.group
+    default_value: galera
+    parent_group: all
+leading_separator: false
+only_clouds:
+  - testing

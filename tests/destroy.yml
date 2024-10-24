@@ -1,0 +1,17 @@
+---
+
+- name: Destroying Test Scenario
+  hosts: localhost
+  vars:
+    openstack_cloud: testing
+  tasks:
+
+    - name: Destroy Instances
+      openstack.cloud.server:
+        state: absent
+        name: "{{ item }}"
+        cloud: "{{ openstack_cloud }}"
+      loop:
+        - galera-1
+        - galera-2
+        - galera-3

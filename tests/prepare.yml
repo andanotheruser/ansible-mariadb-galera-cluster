@@ -1,0 +1,80 @@
+---
+
+- name: Linking role
+  hosts: localhost
+  vars:
+    requirements_yml_file: '../requirements.yml'
+    test_requirements_yml_file: './test_requirements.yml'
+  tasks:
+    - name: Include variables
+      ansible.builtin.include_vars: "vars/main.yml"
+
+    - name: Removing existing link
+      ansible.builtin.file:
+        path: '~/.ansible/roles/adit.{{ the_role_name }}'
+        state: absent
+    - name: Linking role
+      ansible.builtin.file:
+        state: link
+        path: '~/.ansible/roles/adit.{{ the_role_name }}'
+        src: "{{ playbook_dir }}/.."
+    - name: Check if requirements_yml_file exists
+      ansible.builtin.stat:
+        path: "{{ requirements_yml_file }}"
+      register: requirements_yml
+
+    - name: Include requirements_yml_file as variables
+      ansible.builtin.include_vars: "{{ requirements_yml_file }}"
+      when:
+        - requirements_yml.stat.exists
+
+    - name: Remove roles
+      ansible.builtin.file:
+        path: "~/.ansible/roles/{{ item.name }}"
+        state: absent
+      with_items:
+        - "{{ roles }}"
+      when:
+        - roles is defined
+
+    - name: Install roles
+      ansible.builtin.command:
+        cmd: "ansible-galaxy install -r {{ requirements_yml_file }}"
+      register: ansible_galaxy_output
+      with_items:
+        - "{{ roles }}"
+      when:
+        - roles is defined
+      changed_when: ansible_galaxy_output.rc != 0
+
+######################### Role-Requirements for test-Playbooks
+    - name: Check if test_requirements_yml_file exists
+      ansible.builtin.stat:
+        path: "{{ test_requirements_yml_file }}"
+      register: test_requirements_yml
+
+    - name: "Install required roles for test-environment"
+      when:
+        - test_requirements_yml.stat.exists
+      block:
+        - name: Include test_requirements_yml_file as variables
+          ansible.builtin.include_vars: "{{ test_requirements_yml_file }}"
+
+        - name: Remove roles
+          ansible.builtin.file:
+            path: "~/.ansible/roles/{{ item.name }}"
+            state: absent
+          with_items:
+            - "{{ roles }}"
+          when:
+            - roles is defined
+            
+        - name: Install roles
+          ansible.builtin.command:
+            cmd: "ansible-galaxy install -r {{ test_requirements_yml_file }}"
+          register: ansible_galaxy_output
+          with_items:
+            - "{{ roles }}"
+          when:
+            - roles is defined
+          changed_when: ansible_galaxy_output.rc != 0      

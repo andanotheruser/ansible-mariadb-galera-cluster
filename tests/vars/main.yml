@@ -1,0 +1,13 @@
+# tests/vars/main.yml
+# defintion of needed variables
+---
+
+db_path: "{{ kv_path }}/database"
+galera_cluster_bind_interface: '{{ ansible_default_ipv4.interface }}'
+galera_cluster_name: "testcluster"
+galera_cluster_nodes_group: "{{ the_role_name }}"
+galera_mysql_first_node: "{{ groups[the_role_name][0] }}"
+kv_path: "/customer/{{ customer }}/mariadb"
+mariadb_debian_repo_key_url: "https://mariadb.org/mariadb_release_signing_key.asc"
+the_role_name: 'mariadb_galera_cluster'
+user_path: "{{ kv_path }}/user"

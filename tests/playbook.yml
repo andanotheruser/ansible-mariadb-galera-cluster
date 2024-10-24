@@ -1,0 +1,63 @@
+---
+
+- name: Creating Test Environment for Galera
+  hosts: mariadb_galera_cluster
+  order: sorted
+  pre_tasks:
+    - name: Set hostname
+      ansible.builtin.hostname:
+        name: "{{ inventory_hostname }}"
+      become: true
+    - name: Reload facts
+      ansible.builtin.setup:
+    - name: Refresh Inventory
+      ansible.builtin.meta: refresh_inventory
+    - name: Set Hostnames
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: "{{ hostvars[item].ansible_facts.default_ipv4.address }} {{ hostvars[item].ansible_facts.fqdn }}"
+      become: true
+      loop: "{{ ansible_play_hosts }}"
+    - name: Set Hostnames IPv6
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: "{{ hostvars[item].ansible_facts.default_ipv6.address }} {{ hostvars[item].ansible_facts.fqdn }}"
+      become: true
+      loop: "{{ ansible_play_hosts }}"
+    - name: Include variables
+      ansible.builtin.include_vars: "vars/main.yml"
+    - name: Load mysqld_exporter vars
+      ansible.builtin.include_vars:
+        file: mysqld_exporter.yml
+  roles:
+    - role: adit.mariadb_galera_cluster
+  tags:
+    - mariadb_galera_cluster
+
+- name: MySQL Clustercheck
+  hosts: mariadb_galera_cluster
+  order: sorted
+  pre_tasks:
+    - name: Include variables
+      ansible.builtin.include_vars: "vars/main.yml"
+    - name: Load mysqld_exporter vars
+      ansible.builtin.include_vars:
+        file: mysqld_exporter.yml
+  roles:
+    - role: adit.mysql_clustercheck
+  tags:
+    - mysql_clustercheck
+
+- name: MySQL Clustercheck
+  hosts: mariadb_galera_cluster
+  order: sorted
+  pre_tasks:
+    - name: Include variables
+      ansible.builtin.include_vars: "vars/main.yml"
+    - name: Load mysqld_exporter vars
+      ansible.builtin.include_vars:
+        file: mysqld_exporter.yml
+  roles:
+    - role: prometheus.prometheus.mysqld_exporter
+  tags:
+    - prometheus_mysqld_exporter

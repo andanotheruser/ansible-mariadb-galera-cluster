@@ -1,0 +1,5 @@
+---
+
+# MySQLd Exporter Vars
+mysqld_exporter_username: "test"
+mysqld_exporter_password: "test"

@@ -1,0 +1,10 @@
+---
+
+- name: Test stuff
+  hosts: mariadb_galera_cluster
+  tags:
+    - testing
+  tasks:
+    - name: Print ssh command
+      ansible.builtin.debug:
+        msg: 'ssh {{ ansible_default_ipv4.address }}'

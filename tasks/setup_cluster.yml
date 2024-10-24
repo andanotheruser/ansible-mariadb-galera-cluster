@@ -39,6 +39,7 @@
   become: true
   no_log: true
   notify: restart cluster
+  register: _mariadb_galera_cluster_newcerts
   when:
     - mariadb_tls_files is defined
     - mariadb_tls_files | length == 3
@@ -50,7 +51,7 @@
         galera_extra_wsrep_provider_options: >
           {{
             galera_extra_wsrep_provider_options | combine({
-              'ist.recv_addr': galera_ist_recv_addr + ":" + galera_ist_recv_addr_port,
+              'ist.recv_addr': galera_ist_recv_addr + ":" + galera_ist_recv_addr_port|string,
               'ist.recv_bind': galera_ist_recv_bind
               })
           }}
@@ -70,8 +71,7 @@
         - galera_wsrep_tls_enabled
     - name: Add galera_use_gmcast_segment if present
       set_fact:
-        galera_extra_wsrep_provider_options: "{{ galera_extra_wsrep_provider_options | combine({ 'gmcast.segment': hostvars[inventory_hostname]['galera_gmcast_segment']|int
-          }) }}"
+        galera_extra_wsrep_provider_options: "{{ galera_extra_wsrep_provider_options | combine({ 'gmcast.segment': hostvars[inventory_hostname]['galera_gmcast_segment']|int }) }}"
       when:
         - galera_use_gmcast_segment
         - ('galera_gmcast_segment' in hostvars[inventory_hostname])
@@ -88,27 +88,28 @@
     follow: true
   become: true
   register: "_mariadb_galera_cluster_reconfigured"
-  notify: restart cluster
   loop: "{{ mariadb_confs }}"
   loop_control:
     loop_var: file
 
 - name: setup_cluster | cluster rolling restart - apply config changes (first node)
-  ansible.builtin.include_tasks: restart_cluster.yml
+  ansible.builtin.include_tasks: manage_node_state.yml
+  vars:
+    mariadb_systemd_service_state: "restarted"
   with_items: "{{ galera_mysql_first_node }}"
   when: >
     galera_cluster_configured.stat.exists and
-    _mariadb_galera_cluster_reconfigured.changed or
+    (_mariadb_galera_cluster_reconfigured.changed or
     _mariadb_galera_cluster_newcerts.changed)
 
 - name: setup_cluster | cluster rolling restart - apply config changes (other nodes)
-  ansible.builtin.include_tasks: restart_cluster.yml
+  ansible.builtin.include_tasks: manage_node_state.yml
   vars:
     mariadb_systemd_service_state: "restarted"
   with_items: "{{ ansible_play_hosts | difference(galera_mysql_first_node) }}"
   when: >
     galera_cluster_configured.stat.exists and
-    _mariadb_galera_cluster_reconfigured.changed or
+    (_mariadb_galera_cluster_reconfigured.changed or
     _mariadb_galera_cluster_newcerts.changed)
 
 # Offline (re)configuration of glaera cluster settings - cluster bootstrap
@@ -161,7 +162,7 @@
     not galera_cluster_configured.stat.exists
 
 - name: setup_cluster | cluster bootstrap - joining galera cluster
-  ansible.builtin.include_tasks: manage_node_state.yml
+  include_tasks: manage_node_state.yml
   vars:
     mariadb_systemd_service_state: "started"
   with_items: "{{ ansible_play_hosts | difference(galera_mysql_first_node) }}"
@@ -182,7 +183,7 @@
     inventory_hostname == galera_mysql_first_node
 
 - name: setup_cluster | cluster bootstrap - restarting first node with final galera config
-  ansible.builtin.include_tasks: manage_node_state.yml
+  include_tasks: manage_node_state.yml
   vars:
     mariadb_systemd_service_state: "restarted"
   with_items: "{{ galera_mysql_first_node }}"

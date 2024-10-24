@@ -1,0 +1,11 @@
+---
+roles:
+  - name: adit.mysql_clustercheck
+    src: https://group_549_bot_5c252634c40b20e971f823cea50a2254:glpat-S_q-wS-awXTNPyKt-nqq@git.aditsystems.de/adit/infrastructure/ansible/mysql_clustercheck.git
+    scm: git
+    version: 0.1.1
+collections:
+  - name: community.docker
+    version: "*" # Need to ensure that the latest version is installed or Molecule fails
+  - name: prometheus.prometheus
+    version: 0.17.0

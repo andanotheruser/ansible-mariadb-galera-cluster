@@ -1,0 +1,58 @@
+---
+
+- name: Creating Galera Test Scenario
+  hosts: localhost
+  vars:
+    openstack_cloud: testing
+    openstack_ssh_key: testing
+    openstack_flavor_name: gp1a.4
+    openstack_image_name_deb12: debian-12-generic-amd64
+    openstack_image_name_deb11: debian-11-generic-amd64
+    openstack_network_name: network-k0stesting_generic
+  tasks:
+    - name: Include variables
+      ansible.builtin.include_vars: "vars/main.yml"
+
+    - name: Fetch Image (Deb12)
+      openstack.cloud.image_info:
+        cloud: "{{ openstack_cloud }}"
+        image: "{{ openstack_image_name_deb12 }}"
+      register: _openstack_image_deb12
+
+    - name: Fetch Flavor
+      openstack.cloud.compute_flavor_info:
+        cloud: "{{ openstack_cloud }}"
+        name: "{{ openstack_flavor_name }}"
+      register: _openstack_flavor
+
+    - name: Fetch Network
+      openstack.cloud.networks_info:
+        cloud: "{{ openstack_cloud }}"
+        name: "{{ openstack_network_name }}"
+      register: _openstack_network
+
+    - name: Ensure SSH Key exists
+      openstack.cloud.keypair:
+        name: "{{ openstack_ssh_key }}"
+        cloud: "{{ openstack_cloud }}"
+        public_key_file: "{{ ansible_env.HOME }}/.ssh/testing.pub"
+
+    - name: Create Galera Instances
+      openstack.cloud.server:
+        name: "{{ item }}"
+        state: present
+        image: "{{ _openstack_image_deb12.images[0].id }}"
+        key_name: "{{ openstack_ssh_key }}"
+        flavor: "{{ _openstack_flavor.flavors[0].id }}"
+        network: "{{ _openstack_network.networks[0].id }}"
+        terminate_volume: true
+        security_groups:
+          - 1aa4fd40-1650-4151-84a7-3f5ecc4c4b23
+        cloud: "{{ openstack_cloud }}"
+        metadata:
+          group: "{{ the_role_name }}"
+        auto_ip: false
+      loop:
+        - galera-1
+        - galera-2
+        - galera-3
